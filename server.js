@@ -33,7 +33,7 @@ const MODEL_MAPPING = {
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
 
   // --- Added Thinking Models ---
-  'glm-4.7-thinking': 'zai/glm-4.7',
+  'glm-4.7-thinking': 'z-ai/glm-4.7',
   'minimax-m2-thinking': 'minimaxai/minimax-m2',
 
   // --- Compatibility ---
