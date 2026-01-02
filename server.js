@@ -29,7 +29,7 @@ const ENABLE_THINKING_MODE = false;
 const MODEL_MAPPING = {
   // --- New Thinking Models ---
   'minimax-m2': 'minimaxai/minimax-m2', // Verified NVIDIA Endpoint
-  'glm-4.7': 'z-ai/glm-4.7',            // ⚠️ Note: Verify availability on NIM. Common ID is 'thudm/glm-4' if 4.7 isn't out.
+  'glm-4.7': 'z-ai/glm4.7',            // ⚠️ Note: Verify availability on NIM. Common ID is 'thudm/glm-4' if 4.7 isn't out.
 
   // --- DeepSeek & Kimi ---
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
