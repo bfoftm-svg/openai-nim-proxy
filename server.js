@@ -1,3 +1,4 @@
+
 // server.js - OpenAI to NVIDIA NIM API Proxy (FIXED & SAFE)
 
 const express = require('express');
@@ -12,7 +13,7 @@ app.use(cors());
 
 // 🔧 Increase payload limit (100MB)
 app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.urlochoded({ limit: '100mb', extended: true }));
 
 // ================== NVIDIA CONFIG ==================
 const NIM_API_BASE =
@@ -26,15 +27,13 @@ const ENABLE_THINKING_MODE = true;
 // ================== MODEL MAP ==================
 const MODEL_MAPPING = {
   // --- New Models ---
-  'deepseek-v3.2': 'deepseek-ai/deepseek-v3_2',
+  'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-r1': 'deepseek-ai/deepseek-r1',
   'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
-
-  // --- Added Thinking Models ---
-  'glm-4.7-thinking': 'z-ai/glm-4.7',
-  'minimax-m2-thinking': 'minimaxai/minimax-m2',
+  'glm-4.7': 'z-ai/glm-4.7',
+  'minimax-m2': 'minimaxai/minimax-m2',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
@@ -86,7 +85,9 @@ app.post('/v1/chat/completions', async (req, res) => {
       extra_body:
         ENABLE_THINKING_MODE ||
         model?.includes('thinking') ||
-        model?.includes('r1')
+        model?.includes('r1') ||
+        model?.includes('glm-4.7') ||
+        model?.includes('minimax-m2')
           ? { chat_template_kwargs: { thinking: true } }
           : undefined,
       stream: !!stream
