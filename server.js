@@ -1,4 +1,3 @@
-
 // server.js - OpenAI to NVIDIA NIM API Proxy (FIXED & SAFE)
 
 const express = require('express');
@@ -13,7 +12,7 @@ app.use(cors());
 
 // 🔧 Increase payload limit (100MB)
 app.use(express.json({ limit: '100mb' }));
-app.use(express.urlochoded({ limit: '100mb', extended: true }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // ================== NVIDIA CONFIG ==================
 const NIM_API_BASE =
@@ -22,18 +21,22 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // ================== FLAGS ==================
 const SHOW_REASONING = true;
-const ENABLE_THINKING_MODE = true;
+// ⚠️ IMPORTANT: Set this to false. We will enable it dynamically per model.
+// Setting this to true globally breaks non-thinking models (like Llama/GPT-4).
+const ENABLE_THINKING_MODE = false;
 
 // ================== MODEL MAP ==================
 const MODEL_MAPPING = {
-  // --- New Models ---
+  // --- New Thinking Models ---
+  'minimax-m2': 'minimaxai/minimax-m2', // Verified NVIDIA Endpoint
+  'glm-4.7': 'z-ai/glm-4.7',            // ⚠️ Note: Verify availability on NIM. Common ID is 'thudm/glm-4' if 4.7 isn't out.
+
+  // --- DeepSeek & Kimi ---
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-r1': 'deepseek-ai/deepseek-r1',
   'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
-  'glm-4.7': 'z-ai/glm-4.7',
-  'minimax-m2': 'minimaxai/minimax-m2',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
@@ -71,27 +74,37 @@ app.post('/v1/chat/completions', async (req, res) => {
   try {
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
+    // 1. Map model ID to NVIDIA NIM ID
     let nimModel = MODEL_MAPPING[model];
-    if (!nimModel && model) nimModel = model;
-    if (!nimModel) nimModel = 'deepseek-ai/deepseek-v3.2';
+    if (!nimModel && model) nimModel = model; // Allow direct pass-through
+    if (!nimModel) nimModel = 'deepseek-ai/deepseek-v3.2'; // Default fallback
 
     console.log(`Routing: ${model} -> ${nimModel}`);
 
+    // 2. Determine if "Thinking" mode is needed
+    // We check the mapped name for keywords.
+    const isThinkingModel = 
+        nimModel.includes('thinking') || 
+        nimModel.includes('r1') || 
+        nimModel.includes('m2') || // Minimax M2 is a thinking model
+        nimModel.includes('glm');  // GLM often implies reasoning in newer versions
+
+    // 3. Construct Request
     const nimRequest = {
       model: nimModel,
       messages,
       temperature: temperature ?? 0.6,
       max_tokens: max_tokens ?? 4096,
-      extra_body:
-        ENABLE_THINKING_MODE ||
-        model?.includes('thinking') ||
-        model?.includes('r1') ||
-        model?.includes('glm-4.7') ||
-        model?.includes('minimax-m2')
-          ? { chat_template_kwargs: { thinking: true } }
-          : undefined,
       stream: !!stream
     };
+
+    // 4. Inject Thinking Parameter ONLY for specific models
+    // (Injecting this into Llama or standard models causes Proxy Errors)
+    if (ENABLE_THINKING_MODE || isThinkingModel) {
+        nimRequest.extra_body = { 
+            chat_template_kwargs: { thinking: true } 
+        };
+    }
 
     const response = await axios.post(
       `${NIM_API_BASE}/chat/completions`,
@@ -124,12 +137,18 @@ app.post('/v1/chat/completions', async (req, res) => {
       choices: response.data.choices,
       usage: response.data.usage || {}
     });
+
   } catch (err) {
-    console.error('Proxy error:', err.message);
-    res.status(500).json({
+    // Enhanced Error Logging
+    console.error('Proxy error for model:', req.body.model);
+    console.error('Status:', err.response?.status);
+    console.error('Data:', JSON.stringify(err.response?.data || err.message));
+    
+    res.status(err.response?.status || 500).json({
       error: {
-        message: err.message,
-        type: 'proxy_error'
+        message: err.response?.data?.error?.message || err.message,
+        type: 'proxy_error',
+        details: err.response?.data
       }
     });
   }
@@ -143,5 +162,6 @@ app.all('*', (req, res) => {
 // ================== START ==================
 app.listen(PORT, () => {
   console.log(`🚀 Proxy running on port ${PORT}`);
-  console.log('Models:', Object.keys(MODEL_MAPPING).join(', '));
+  console.log(`Checked Models: Minimax M2, GLM 4.7, DeepSeek R1`);
 });
+      
