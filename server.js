@@ -1,4 +1,4 @@
-// server.js - OpenAI to NVIDIA NIM API Proxy (FIXED & SAFE)
+// server.js - OpenAI to NVIDIA NIM API Proxy (STABLE)
 
 const express = require('express');
 const cors = require('cors');
@@ -9,19 +9,12 @@ const PORT = process.env.PORT || 3000;
 
 // ================== MIDDLEWARE ==================
 app.use(cors());
-
-// 🔧 Increase payload limit (100MB)
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // ================== NVIDIA CONFIG ==================
-const NIM_API_BASE =
-  process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
+const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
 const NIM_API_KEY = process.env.NIM_API_KEY;
-
-// ================== FLAGS ==================
-const SHOW_REASONING = true;
-const ENABLE_THINKING_MODE = true;
 
 // ================== MODEL MAP ==================
 const MODEL_MAPPING = {
@@ -45,28 +38,30 @@ const MODEL_MAPPING = {
 
 // ================== HEALTH ==================
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'NVIDIA NIM Proxy',
-    models: Object.keys(MODEL_MAPPING)
-  });
+  res.json({ status: 'ok', service: 'NVIDIA NIM Proxy', models: Object.keys(MODEL_MAPPING) });
 });
 
 // ================== MODELS ==================
 app.get('/v1/models', (req, res) => {
   const models = Object.keys(MODEL_MAPPING).map(id => ({
-    id,
-    object: 'model',
-    created: Date.now(),
-    owned_by: 'nvidia-nim-proxy'
+    id, object: 'model', created: Date.now(), owned_by: 'nvidia-nim-proxy'
   }));
-
   res.json({ object: 'list', data: models });
 });
 
 // ================== CHAT ==================
 app.post('/v1/chat/completions', async (req, res) => {
-  const abortController = new AbortController(); // [1] Control upstream cancellation
+  // [1] Create controller to kill upstream request if client drops
+  const abortController = new AbortController();
+
+  // [2] Listen to RESPONSE close, not request close. 
+  // This only fires if the client disconnects PREMATURELY.
+  res.on('close', () => {
+    if (!res.writableEnded) {
+        console.log('Client disconnected early. Aborting upstream...');
+        abortController.abort();
+    }
+  });
 
   try {
     const { model, messages, temperature, max_tokens, stream } = req.body;
@@ -77,22 +72,14 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     console.log(`Routing: ${model} -> ${nimModel}`);
 
-    // Clean up connection if client disconnects (Refresh/Stop Generation)
-    req.on('close', () => {
-      abortController.abort();
-    });
-
     const nimRequest = {
       model: nimModel,
       messages,
-      temperature: temperature ?? 0.6, // [2] Lower temp is better for GLM-4.7/Thinking models
+      temperature: temperature ?? 0.6,
       max_tokens: max_tokens ?? 4096,
-      extra_body:
-        ENABLE_THINKING_MODE ||
-        model?.includes('thinking') ||
-        model?.includes('r1')
-          ? { chat_template_kwargs: { thinking: true } }
-          : undefined,
+      extra_body: (model?.includes('thinking') || model?.includes('r1')) 
+        ? { chat_template_kwargs: { thinking: true } } 
+        : undefined,
       stream: !!stream
     };
 
@@ -105,27 +92,23 @@ app.post('/v1/chat/completions', async (req, res) => {
           'Content-Type': 'application/json'
         },
         responseType: stream ? 'stream' : 'json',
-        signal: abortController.signal, // [3] Link controller to axios
-        decompress: false // [4] Critical for stable proxy streaming
+        signal: abortController.signal, // Connect the abort controller
+        decompress: false // Keep this to prevent buffering issues
       }
     );
 
     // ---------- STREAM ----------
     if (stream) {
-      // Copy headers from upstream (ensures chunks are handled right)
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-
-      // Pipe the stream directly
+      
       response.data.pipe(res);
-
-      // Handle stream errors
+      
       response.data.on('error', (err) => {
-        console.error('Stream Error:', err.message);
         if (!res.headersSent) res.status(500).end();
+        console.error('Stream Error:', err.message);
       });
-
       return;
     }
 
@@ -140,29 +123,19 @@ app.post('/v1/chat/completions', async (req, res) => {
     });
 
   } catch (err) {
+    // Ignore cancellations (caused by user refreshing)
     if (axios.isCancel(err)) {
-      console.log('Request canceled by client.');
+      console.log('Request canceled by client (Clean up).');
     } else {
       console.error('Proxy error:', err.message);
       if (!res.headersSent) {
-        res.status(500).json({
-          error: {
-            message: err.message || 'Internal Proxy Error',
-            type: 'proxy_error'
-          }
-        });
+        res.status(500).json({ error: { message: err.message, type: 'proxy_error' } });
       }
     }
   }
 });
 
-// ================== FALLBACK ==================
-app.all('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
-
 // ================== START ==================
 app.listen(PORT, () => {
   console.log(`🚀 Proxy running on port ${PORT}`);
-  console.log('Models:', Object.keys(MODEL_MAPPING).join(', '));
 });
