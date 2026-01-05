@@ -15,21 +15,26 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // ================== NVIDIA CONFIG ==================
-const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
+const NIM_API_BASE =
+  process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
 const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // ================== FLAGS ==================
-const ENABLE_THINKING_MODE = false;
+const SHOW_REASONING = true;
+const ENABLE_THINKING_MODE = true;
 
 // ================== MODEL MAP ==================
 const MODEL_MAPPING = {
-  'minimax-m2': 'minimaxai/minimax-m2',
-  'glm-4.7': 'z-ai/glm4.7',
+  // --- New Models ---
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-r1': 'deepseek-ai/deepseek-r1',
   'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
+'glm-4.7': 'z-ai/glm4.7',
+
+
+  // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
   'gpt-4': 'deepseek-ai/deepseek-v3.1',
   'gpt-4-turbo': 'moonshotai/kimi-k2-instruct-0905',
@@ -53,7 +58,7 @@ app.get('/v1/models', (req, res) => {
   const models = Object.keys(MODEL_MAPPING).map(id => ({
     id,
     object: 'model',
-    created: Math.floor(Date.now() / 1000),
+    created: Date.now(),
     owned_by: 'nvidia-nim-proxy'
   }));
 
@@ -71,25 +76,19 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     console.log(`Routing: ${model} -> ${nimModel}`);
 
-    const isThinkingModel = 
-        nimModel.includes('thinking') || 
-        nimModel.includes('r1') || 
-        nimModel.includes('m2') || 
-        nimModel.includes('glm');
-
     const nimRequest = {
       model: nimModel,
       messages,
-      temperature: temperature ?? 0.6,
+      temperature: temperature ?? 0.9,
       max_tokens: max_tokens ?? 4096,
+      extra_body:
+        ENABLE_THINKING_MODE ||
+        model?.includes('thinking') ||
+        model?.includes('r1')
+          ? { chat_template_kwargs: { thinking: true } }
+          : undefined,
       stream: !!stream
     };
-
-    if (ENABLE_THINKING_MODE || isThinkingModel) {
-        nimRequest.extra_body = { 
-            chat_template_kwargs: { thinking: true } 
-        };
-    }
 
     const response = await axios.post(
       `${NIM_API_BASE}/chat/completions`,
@@ -99,19 +98,21 @@ app.post('/v1/chat/completions', async (req, res) => {
           Authorization: `Bearer ${NIM_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        responseType: stream ? 'stream' : 'json',
-        timeout: 180000 // 3 minute timeout for deep thinking models
+        responseType: stream ? 'stream' : 'json'
       }
     );
 
+    // ---------- STREAM ----------
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+
       response.data.pipe(res);
       return;
     }
 
+    // ---------- NON STREAM ----------
     res.json({
       id: `chatcmpl-${Date.now()}`,
       object: 'chat.completion',
@@ -120,28 +121,12 @@ app.post('/v1/chat/completions', async (req, res) => {
       choices: response.data.choices,
       usage: response.data.usage || {}
     });
-
   } catch (err) {
-    // SAFE LOGGING: Avoid JSON.stringify on the whole error object
-    console.error('--- Proxy Error ---');
-    console.error('Model:', req.body?.model);
-    console.error('Status:', err.response?.status || 'No Status');
-    
-    // Log data safely if it exists
-    if (err.response?.data) {
-        console.error('Error Details:', err.response.data);
-    } else {
-        console.error('Message:', err.message);
-    }
-
-    // Don't let the response crash the server if response data is circular
-    const errorMsg = err.response?.data?.error?.message || err.response?.data?.detail || err.message;
-
-    res.status(err.response?.status || 500).json({
+    console.error('Proxy error:', err.message);
+    res.status(500).json({
       error: {
-        message: errorMsg,
-        type: 'proxy_error',
-        status: err.response?.status
+        message: err.message,
+        type: 'proxy_error'
       }
     });
   }
@@ -155,5 +140,5 @@ app.all('*', (req, res) => {
 // ================== START ==================
 app.listen(PORT, () => {
   console.log(`🚀 Proxy running on port ${PORT}`);
+  console.log('Models:', Object.keys(MODEL_MAPPING).join(', '));
 });
-  
