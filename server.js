@@ -31,8 +31,7 @@ const MODEL_MAPPING = {
   'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
-'glm-4.7': 'z-ai/glm4.7',
-
+  'glm-4.7': 'z-ai/glm4.7',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
@@ -67,6 +66,8 @@ app.get('/v1/models', (req, res) => {
 
 // ================== CHAT ==================
 app.post('/v1/chat/completions', async (req, res) => {
+  const abortController = new AbortController(); // [1] Control upstream cancellation
+
   try {
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
@@ -76,10 +77,15 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     console.log(`Routing: ${model} -> ${nimModel}`);
 
+    // Clean up connection if client disconnects (Refresh/Stop Generation)
+    req.on('close', () => {
+      abortController.abort();
+    });
+
     const nimRequest = {
       model: nimModel,
       messages,
-      temperature: temperature ?? 0.9,
+      temperature: temperature ?? 0.6, // [2] Lower temp is better for GLM-4.7/Thinking models
       max_tokens: max_tokens ?? 4096,
       extra_body:
         ENABLE_THINKING_MODE ||
@@ -98,17 +104,28 @@ app.post('/v1/chat/completions', async (req, res) => {
           Authorization: `Bearer ${NIM_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        responseType: stream ? 'stream' : 'json'
+        responseType: stream ? 'stream' : 'json',
+        signal: abortController.signal, // [3] Link controller to axios
+        decompress: false // [4] Critical for stable proxy streaming
       }
     );
 
     // ---------- STREAM ----------
     if (stream) {
+      // Copy headers from upstream (ensures chunks are handled right)
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      // Pipe the stream directly
       response.data.pipe(res);
+
+      // Handle stream errors
+      response.data.on('error', (err) => {
+        console.error('Stream Error:', err.message);
+        if (!res.headersSent) res.status(500).end();
+      });
+
       return;
     }
 
@@ -121,14 +138,21 @@ app.post('/v1/chat/completions', async (req, res) => {
       choices: response.data.choices,
       usage: response.data.usage || {}
     });
+
   } catch (err) {
-    console.error('Proxy error:', err.message);
-    res.status(500).json({
-      error: {
-        message: err.message,
-        type: 'proxy_error'
+    if (axios.isCancel(err)) {
+      console.log('Request canceled by client.');
+    } else {
+      console.error('Proxy error:', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: {
+            message: err.message || 'Internal Proxy Error',
+            type: 'proxy_error'
+          }
+        });
       }
-    });
+    }
   }
 });
 
