@@ -25,6 +25,7 @@ const MODEL_MAPPING = {
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
   'glm-4.7': 'z-ai/glm4.7',
+  'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
