@@ -26,7 +26,7 @@ const MODEL_MAPPING = {
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
   'glm-4.7': 'z-ai/glm4.7',
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
-  'instruct': 'moonshot/
+  'instruct': 'moonshotai/
 kimi-k2-instruct-0905',
 
   // --- Compatibility ---
