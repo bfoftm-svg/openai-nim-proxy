@@ -28,6 +28,7 @@ const MODEL_MAPPING = {
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
   'instruct': 'moonshotai/kimi-k2-instruct-0905',
   'moon': 'moonshotai/kimi-k2.5',
+  'stepfun': 'stepfun-ai/step-3.5-flash',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
