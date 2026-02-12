@@ -81,8 +81,8 @@ const nimRequest = {
   messages,  
   temperature: temperature ?? 0.6,  
   max_tokens: max_tokens ?? 4096,  
-  extra_body: (model?.includes('moon') || model?.includes('k2.5'))   
-    ? { chat_template_kwargs: { thinking: false } }   
+  extra_body: (model?.includes('thinking') || model?.includes('r1'))   
+    ? { chat_template_kwargs: { thinking: true } }   
     : undefined,  
   stream: !!stream  
 };  
