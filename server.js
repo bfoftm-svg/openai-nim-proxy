@@ -82,7 +82,9 @@ app.post('/v1/chat/completions', async (req, res) => {
       temperature: temperature ?? 0.6,
       max_tokens: max_tokens ?? 4096,
       extra_body: (model?.includes('thinking') || model?.includes('r1')) 
-        ? { chat_template_kwargs: { thinking: true } } 
+        ? { chat_template_kwargs: { thinking: true } }
+        : (model === 'moon' || nimModel === 'moonshotai/kimi-k2.5')
+        ? { chat_template_kwargs: { thinking: false } }
         : undefined,
       stream: !!stream
     };
@@ -110,6 +112,39 @@ app.post('/v1/chat/completions', async (req, res) => {
       response.data.pipe(res);
       
       response.data.on('error', (err) => {
+        if (!res.headersSent) res.status(500).end();
+        console.error('Stream Error:', err.message);
+      });
+      return;
+    }
+
+    // ---------- NON STREAM ----------
+    res.json({
+      id: `chatcmpl-${Date.now()}`,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model,
+      choices: response.data.choices,
+      usage: response.data.usage || {}
+    });
+
+  } catch (err) {
+    // Ignore cancellations (caused by user refreshing)
+    if (axios.isCancel(err)) {
+      console.log('Request canceled by client (Clean up).');
+    } else {
+      console.error('Proxy error:', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: { message: err.message, type: 'proxy_error' } });
+      }
+    }
+  }
+});
+
+// ================== START ==================
+app.listen(PORT, () => {
+  console.log(`🚀 Proxy running on port ${PORT}`);
+});      response.data.on('error', (err) => {
         if (!res.headersSent) res.status(500).end();
         console.error('Stream Error:', err.message);
       });
