@@ -79,16 +79,16 @@ app.post('/v1/chat/completions', async (req, res) => {
 const nimRequest = {
       model: nimModel,
       messages,
-      temperature: temperature ?? 0.6,
+      temperature: temperature ?? 0.8,
       max_tokens: max_tokens ?? 4096,
       extra_body: (model?.includes('thinking') || model?.includes('r1')) 
         ? { chat_template_kwargs: { thinking: true } }
-        : (model === 'moon' || nimModel === 'moonshotai/kimi-k2.5')
+        : (nimModel === 'moonshotai/kimi-k2.5')
         ? { chat_template_kwargs: { thinking: false } }
         : undefined,
       stream: !!stream
     };
-
+    
     const response = await axios.post(
       `${NIM_API_BASE}/chat/completions`,
       nimRequest,
