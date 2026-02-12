@@ -18,128 +18,128 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // ================== MODEL MAP ==================
 const MODEL_MAPPING = {
-// --- New Models ---
-'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
-'deepseek-r1': 'deepseek-ai/deepseek-r1',
-'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
-'kimi-thinking': 'moonshotai/kimi-k2-thinking',
-'kimi-k2': 'moonshotai/kimi-k2-instruct',
-'glm-4.7': 'z-ai/glm4.7',
-'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
-'instruct': 'moonshotai/kimi-k2-instruct-0905',
-'moon': 'moonshotai/kimi-k2.5',
-'stepfun': 'stepfun-ai/step-3.5-flash',
+  // --- New Models ---
+  'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
+  'deepseek-r1': 'deepseek-ai/deepseek-r1',
+  'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
+  'kimi-thinking': 'moonshotai/kimi-k2-thinking',
+  'kimi-k2': 'moonshotai/kimi-k2-instruct',
+  'glm-4.7': 'z-ai/glm4.7',
+  'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
+  'instruct': 'moonshotai/kimi-k2-instruct-0905',
+  'moon': 'moonshotai/kimi-k2.5',
+  'stepfun': 'stepfun-ai/step-3.5-flash',
 
-// --- Compatibility ---
-'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
-'gpt-4': 'deepseek-ai/deepseek-v3.1',
-'gpt-4-turbo': 'moonshotai/kimi-k2-instruct-0905',
-'gpt-4o': 'deepseek-ai/deepseek-v3.1',
-'claude-3-opus': 'deepseek-ai/deepseek-r1',
-'claude-3-sonnet': 'deepseek-ai/deepseek-v3.2',
-'gemini-pro': 'qwen/qwen3-next-80b-a3b-thinking'
+  // --- Compatibility ---
+  'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  'gpt-4': 'deepseek-ai/deepseek-v3.1',
+  'gpt-4-turbo': 'moonshotai/kimi-k2-instruct-0905',
+  'gpt-4o': 'deepseek-ai/deepseek-v3.1',
+  'claude-3-opus': 'deepseek-ai/deepseek-r1',
+  'claude-3-sonnet': 'deepseek-ai/deepseek-v3.2',
+  'gemini-pro': 'qwen/qwen3-next-80b-a3b-thinking'
 };
 
 // ================== HEALTH ==================
 app.get('/health', (req, res) => {
-res.json({ status: 'ok', service: 'NVIDIA NIM Proxy', models: Object.keys(MODEL_MAPPING) });
+  res.json({ status: 'ok', service: 'NVIDIA NIM Proxy', models: Object.keys(MODEL_MAPPING) });
 });
 
 // ================== MODELS ==================
 app.get('/v1/models', (req, res) => {
-const models = Object.keys(MODEL_MAPPING).map(id => ({
-id, object: 'model', created: Date.now(), owned_by: 'nvidia-nim-proxy'
-}));
-res.json({ object: 'list', data: models });
+  const models = Object.keys(MODEL_MAPPING).map(id => ({
+    id, object: 'model', created: Date.now(), owned_by: 'nvidia-nim-proxy'
+  }));
+  res.json({ object: 'list', data: models });
 });
 
 // ================== CHAT ==================
 app.post('/v1/chat/completions', async (req, res) => {
-// [1] Create controller to kill upstream request if client drops
-const abortController = new AbortController();
+  // [1] Create controller to kill upstream request if client drops
+  const abortController = new AbortController();
 
-// [2] Listen to RESPONSE close, not request close.
-// This only fires if the client disconnects PREMATURELY.
-res.on('close', () => {
-if (!res.writableEnded) {
-console.log('Client disconnected early. Aborting upstream...');
-abortController.abort();
-}
-});
+  // [2] Listen to RESPONSE close, not request close. 
+  // This only fires if the client disconnects PREMATURELY.
+  res.on('close', () => {
+    if (!res.writableEnded) {
+        console.log('Client disconnected early. Aborting upstream...');
+        abortController.abort();
+    }
+  });
 
-try {
-const { model, messages, temperature, max_tokens, stream } = req.body;
+  try {
+    const { model, messages, temperature, max_tokens, stream } = req.body;
 
-let nimModel = MODEL_MAPPING[model];  
-if (!nimModel && model) nimModel = model;  
-if (!nimModel) nimModel = 'deepseek-ai/deepseek-v3.2';  
+    let nimModel = MODEL_MAPPING[model];
+    if (!nimModel && model) nimModel = model;
+    if (!nimModel) nimModel = 'deepseek-ai/deepseek-v3.2';
 
-console.log(`Routing: ${model} -> ${nimModel}`);  
+    console.log(`Routing: ${model} -> ${nimModel}`);
 
-const nimRequest = {  
-  model: nimModel,  
-  messages,  
-  temperature: temperature ?? 0.6,  
-  max_tokens: max_tokens ?? 4096,  
-  extra_body: (model?.includes('thinking') || model?.includes('r1'))   
-    ? { chat_template_kwargs: { thinking: true } }   
-    : undefined,  
-  stream: !!stream  
-};  
+    const nimRequest = {
+      model: nimModel,
+      messages,
+      temperature: temperature ?? 0.8,
+      max_tokens: max_tokens ?? 4096,
+      extra_body: (model?.includes('moon') || model?.includes('k2.5')) 
+        ? { chat_template_kwargs: { thinking: false } } 
+        : undefined,
+      stream: !!stream
+    };
 
-const response = await axios.post(  
-  `${NIM_API_BASE}/chat/completions`,  
-  nimRequest,  
-  {  
-    headers: {  
-      Authorization: `Bearer ${NIM_API_KEY}`,  
-      'Content-Type': 'application/json'  
-    },  
-    responseType: stream ? 'stream' : 'json',  
-    signal: abortController.signal, // Connect the abort controller  
-    decompress: false // Keep this to prevent buffering issues  
-  }  
-);  
+    const response = await axios.post(
+      `${NIM_API_BASE}/chat/completions`,
+      nimRequest,
+      {
+        headers: {
+          Authorization: `Bearer ${NIM_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: stream ? 'stream' : 'json',
+        signal: abortController.signal, // Connect the abort controller
+        decompress: false // Keep this to prevent buffering issues
+      }
+    );
 
-// ---------- STREAM ----------  
-if (stream) {  
-  res.setHeader('Content-Type', 'text/event-stream');  
-  res.setHeader('Cache-Control', 'no-cache');  
-  res.setHeader('Connection', 'keep-alive');  
-    
-  response.data.pipe(res);  
-    
-  response.data.on('error', (err) => {  
-    if (!res.headersSent) res.status(500).end();  
-    console.error('Stream Error:', err.message);  
-  });  
-  return;  
-}  
+    // ---------- STREAM ----------
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      response.data.pipe(res);
+      
+      response.data.on('error', (err) => {
+        if (!res.headersSent) res.status(500).end();
+        console.error('Stream Error:', err.message);
+      });
+      return;
+    }
 
-// ---------- NON STREAM ----------  
-res.json({  
-  id: `chatcmpl-${Date.now()}`,  
-  object: 'chat.completion',  
-  created: Math.floor(Date.now() / 1000),  
-  model,  
-  choices: response.data.choices,  
-  usage: response.data.usage || {}  
-});
+    // ---------- NON STREAM ----------
+    res.json({
+      id: `chatcmpl-${Date.now()}`,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model,
+      choices: response.data.choices,
+      usage: response.data.usage || {}
+    });
 
-} catch (err) {
-// Ignore cancellations (caused by user refreshing)
-if (axios.isCancel(err)) {
-console.log('Request canceled by client (Clean up).');
-} else {
-console.error('Proxy error:', err.message);
-if (!res.headersSent) {
-res.status(500).json({ error: { message: err.message, type: 'proxy_error' } });
-}
-}
-}
+  } catch (err) {
+    // Ignore cancellations (caused by user refreshing)
+    if (axios.isCancel(err)) {
+      console.log('Request canceled by client (Clean up).');
+    } else {
+      console.error('Proxy error:', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: { message: err.message, type: 'proxy_error' } });
+      }
+    }
+  }
 });
 
 // ================== START ==================
 app.listen(PORT, () => {
-console.log(🚀 Proxy running on port ${PORT});
+  console.log(`🚀 Proxy running on port ${PORT}`);
 });
