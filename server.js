@@ -78,17 +78,17 @@ app.post('/v1/chat/completions', async (req, res) => {
     console.log(`Routing: ${model} -> ${nimModel}`);
 
 const nimRequest = {
-      model: nimModel,
-      messages,
-      temperature: temperature ?? 0.8,
-      max_tokens: max_tokens ?? 4096,
-      extra_body: (model?.includes('thinking') || model?.includes('r1')) 
-        ? { chat_template_kwargs: { thinking: true } }
-        : (nimModel === 'moonshotai/kimi-k2.5')
-        ? { chat_template_kwargs: { thinking: false } }
-        : undefined,
-      stream: !!stream
-    };
+  model: nimModel,
+  messages: messages,
+  temperature: temperature ?? 0.8,
+  max_tokens: max_tokens ?? 4096,
+  stream: !!stream
+};
+
+// Disable thinking for Kimi 2.5
+if (nimModel === "moonshotai/kimi-k2.5") {
+  nimRequest.chat_template_kwargs = { thinking: false };
+}
     
     const response = await axios.post(
       `${NIM_API_BASE}/chat/completions`,
