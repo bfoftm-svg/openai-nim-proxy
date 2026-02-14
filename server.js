@@ -87,7 +87,7 @@ const nimRequest = {
 
 // Disable thinking for Kimi 2.5
 if (nimModel === "moonshotai/kimi-k2.5") {
-  nimRequest.chat_template_kwargs = { thinking: false };
+  nimRequest.chat_template_kwargs = { thinking: true };
 }
     
     const response = await axios.post(
