@@ -86,7 +86,7 @@ const nimRequest = {
 };
 
 // Disable thinking for Kimi 2.5
-if (nimModel === "moonshotai/kimi-k2.5") {
+if (nimModel === "z-ai/glm5") {
   nimRequest.chat_template_kwargs = { thinking: true };
 }
     
