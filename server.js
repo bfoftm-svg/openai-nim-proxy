@@ -30,6 +30,7 @@ const MODEL_MAPPING = {
   'moon': 'moonshotai/kimi-k2.5',
   'stepfun': 'stepfun-ai/step-3.5-flash',
   'glm-5': 'z-ai/glm5',
+  'qwen': 'qwen/qwen3.5-122b-a10b',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
