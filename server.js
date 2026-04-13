@@ -32,6 +32,8 @@ const MODEL_MAPPING = {
   'glm-5': 'z-ai/glm5',
   'qwen': 'qwen/qwen3.5-122b-a10b',
   'qwenp': 'qwen/qwen3.5-397b-a17b',
+  'mini': 'minimaxai/minimax-m2.7',
+  'nvidia': 'nvidia/nemotron-3-super-120b-a12b',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
