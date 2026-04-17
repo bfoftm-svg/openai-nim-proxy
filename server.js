@@ -29,7 +29,7 @@ const MODEL_MAPPING = {
   'instruct': 'moonshotai/kimi-k2-instruct-0905',
   'moon': 'moonshotai/kimi-k2.5',
   'stepfun': 'stepfun-ai/step-3.5-flash',
-  'glm-5': 'z-ai/glm5',
+  'glm-5': 'z-ai/glm-5.1',
   'qwen': 'qwen/qwen3.5-122b-a10b',
   'qwenp': 'qwen/qwen3.5-397b-a17b',
   'mini': 'minimaxai/minimax-m2.7',
