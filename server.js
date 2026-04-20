@@ -85,7 +85,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 const nimRequest = {
   model: nimModel,
   messages: messages,
-  temperature: temperature ?? 0.8,
+  temperature: temperature ?? 0.9,
   max_tokens: max_tokens ?? 4096,
   stream: !!stream
 };
@@ -93,6 +93,10 @@ const nimRequest = {
 // Disable thinking for Kimi 2.5
 if (nimModel === "z-ai/glm-5.1") {
   nimRequest.chat_template_kwargs = { thinking: true };
+}
+    // Disable thinking for Kimi 2.5
+if (nimModel === "moonshotai/kimi-k2.5") {
+  nimRequest.chat_template_kwargs = { thinking: false };
 }
     
     const response = await axios.post(
