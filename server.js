@@ -99,10 +99,7 @@ if (nimModel === "z-ai/glm-5.1") {
 if (nimModel === "moonshotai/kimi-k2.5") {
   nimRequest.chat_template_kwargs = { thinking: false };
 }
-    // Disable thinking for Kimi 2.5
-if (nimModel === "deepseek-ai/deepseek-v4-pro") {
-  nimRequest.chat_template_kwargs = { thinking: true };
-}
+
     
     const response = await axios.post(
       `${NIM_API_BASE}/chat/completions`,
