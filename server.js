@@ -36,6 +36,7 @@ const MODEL_MAPPING = {
   'mini': 'minimaxai/minimax-m2.7',
   'nvidia': 'nvidia/nemotron-3-super-120b-a12b',
   'pro': 'deepseek-ai/deepseek-v4-pro',
+  'flash': 'deepseek-ai/deepseek-v4-flash',
 
   // --- Compatibility ---
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
