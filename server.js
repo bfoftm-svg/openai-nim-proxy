@@ -22,7 +22,7 @@ const MODEL_MAPPING = {
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-r1': 'deepseek-ai/deepseek-r1',
   'deepseek-r1-0528': 'deepseek-ai/deepseek-r1-0528',
-  'kimi-thinking': 'moonshotai/kimi-k2-thinking',
+  '2.6': 'moonshotai/kimi-k2.6',
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
   'glm-4.7': 'z-ai/glm-4.7',
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
