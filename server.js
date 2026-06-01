@@ -28,7 +28,7 @@ const MODEL_MAPPING = {
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
   'instruct': 'moonshotai/kimi-k2-instruct-0905',
   'moon': 'moonshotai/kimi-k2.5',
-  'stepfun': 'stepfun-ai/step-3.5-flash',
+  'step': 'stepfun-ai/step-3.7-flash',
   'glm-5.1': 'z-ai/glm-5.1',
   'glm-5': 'z-ai/glm-5',
   'qwen': 'qwen/qwen3.5-122b-a10b',
