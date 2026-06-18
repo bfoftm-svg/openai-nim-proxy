@@ -103,7 +103,7 @@ if (nimModel === "moonshotai/kimi-k2.6") {
 }
 
     // Disable thinking for Kimi 2.5
-if (nimModel === "deepseek-ai/deepseek-v4-flash") {
+if (nimModel === "deepseek-ai/deepseek-v4-pro") {
   nimRequest.chat_template_kwargs = { thinking: true };
   }
     
