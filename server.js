@@ -33,7 +33,7 @@ const MODEL_MAPPING = {
   'glm-5': 'z-ai/glm-5',
   'qwen': 'qwen/qwen3.5-122b-a10b',
   'qwenp': 'qwen/qwen3.5-397b-a17b',
-  'mini': 'minimaxai/minimax-m2.7',
+  'mini': 'minimaxai/minimax-m3',
   'nvidia': 'nvidia/nemotron-3-super-120b-a12b',
   'pro': 'deepseek-ai/deepseek-v4-pro',
   'flash': 'deepseek-ai/deepseek-v4-flash',
