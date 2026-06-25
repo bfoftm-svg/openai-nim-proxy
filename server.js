@@ -95,7 +95,7 @@ const nimRequest = {
 
 // Disable thinking for Kimi 2.5
 if (nimModel === "z-ai/glm-5.1") {
-  nimRequest.chat_template_kwargs = { thinking: false };
+  nimRequest.chat_template_kwargs = { thinking: true };
 }
     // Disable thinking for Kimi 2.5
 if (nimModel === "moonshotai/kimi-k2.6") {
@@ -104,7 +104,7 @@ if (nimModel === "moonshotai/kimi-k2.6") {
 
     // Disable thinking for Kimi 2.5
 if (nimModel === "deepseek-ai/deepseek-v4-pro") {
-  nimRequest.chat_template_kwargs = { thinking: true };
+  nimRequest.chat_template_kwargs = { thinking: false };
   }
     
     
