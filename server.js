@@ -27,7 +27,7 @@ const MODEL_MAPPING = {
   'glm-4.7': 'z-ai/glm-4.7',
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
   'instruct': 'moonshotai/kimi-k2-instruct-0905',
-  'moon': 'moonshotai/kimi-k2.5',
+  'moon': 'moonshotai/kimi-k3',
   'step': 'stepfun-ai/step-3.7-flash',
   'glm-5.1': 'z-ai/glm-5.1',
   'gl': 'z-ai/glm-5.2',
@@ -35,8 +35,8 @@ const MODEL_MAPPING = {
   'qwenp': 'qwen/qwen3.5-397b-a17b',
   'mini': 'minimaxai/minimax-m3',
   'nvidia': 'nvidia/nemotron-3-super-120b-a12b',
-  'pro': 'deepseek-ai/deepseek-v4-pro',
-  'flash': 'deepseek-ai/deepseek-v4-flash',
+  'pro': 'deepseek-ai/deepseek-v4-pro-0813',
+  'flash': 'deepseek-ai/deepseek-v4-flash-0731',
   'gem': 'google/gemma-4-31b-it',
 
   // --- Compatibility ---
